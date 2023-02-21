@@ -37,6 +37,9 @@ module.exports = {
       await newUser.save();
       const newVerification = new Verification({ pin, userId: newUser._id });
       await newVerification.save();
+      var token = jwt.sign({ id: newUser._id }, process.env.JWT, {
+        expiresIn: "2 days",
+      });
       const { password, ...others } = newUser._doc;
       // send Verification Email
       transporter
@@ -52,7 +55,7 @@ module.exports = {
         .catch((err) => console.log(err));
       console.log(others);
 
-      return res.status(200).json({ message: others });
+      return res.status(200).json({ ...others, token });
     } catch (err) {
       next(err);
     }
@@ -95,11 +98,12 @@ module.exports = {
         .json({ status: "fail", message: error.details[0].message });
 
     try {
-      const code = await req.body.pin;
+      const code = req.body.pin;
       const verified = await Verification.find({ userId: req.params.userId });
       if (!verified) return next(createError(400, "User Not Found"));
 
-      if (verified[0].pin !== code) return next(createError(400, "Wrong Pin"));
+      if (verified[0].pin !== code)
+        return res.status(400).json({ message: "Wrong pin", success: false });
 
       await Verification.findByIdAndDelete(verified[0]._id);
       await User.findByIdAndUpdate(req.params.userId, { verified: true });
