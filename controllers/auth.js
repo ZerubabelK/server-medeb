@@ -53,7 +53,6 @@ module.exports = {
           console.log(res);
         })
         .catch((err) => console.log(err));
-      console.log(others);
 
       return res.status(200).json({ ...others, token });
     } catch (err) {
@@ -69,6 +68,7 @@ module.exports = {
         .json({ status: "fail", message: error.details[0].message });
 
     try {
+      console.log(req.body);
       const user = await User.findOne({ email: req.body.email });
       if (!user) return next(createError(400, "Wrong credentials!"));
 
@@ -79,7 +79,6 @@ module.exports = {
 
       if (!isCorrect) return next(createError(400, "Wrong credentials!"));
 
-      // const j =
       const token = jwt.sign({ id: user._id }, process.env.JWT);
 
       const { password, ...others } = user._doc;
@@ -110,6 +109,41 @@ module.exports = {
       res.status(200).json({ message: "User Verified" });
     } catch (err) {
       next(err);
+    }
+  },
+  resendPin: async (req, res, next) => {
+    try {
+      const { userId } = req.params;
+      const user = await User.findById();
+      if (!user) return next(createError(400, "User Not Found"));
+      const pin = PINGenerator();
+      const verification = await Verification.find({
+        userId: req.params.userId,
+      });
+      if (!verification) return next(createError(400, "User Not Found"));
+      await Verification.findByIdAndUpdate(verification[0]._id, { pin });
+      transporter.sendMail({
+        from: "zerubabelkassahun116@gmail.com",
+        to: user.email,
+        subject: "Verifiy yor email",
+        html: ` Your Verification code is ${pin}`,
+      });
+      res.status(200).json({ message: "Pin Sent" });
+    } catch (err) {
+      console.log(err);
+    }
+  },
+  uploadImage: async (req, res, next) => {
+    console.log(req.file);
+    if (req.file) {
+      res.json({
+        message: "Image uploaded successfully",
+        file: req.file,
+      });
+    } else {
+      res.status(400).json({
+        message: "No image selected",
+      });
     }
   },
 };

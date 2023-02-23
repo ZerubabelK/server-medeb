@@ -1,13 +1,20 @@
 const express = require("express");
-const { signup, signin, confirmation } = require("../controllers/auth.js");
+const {
+  signup,
+  signin,
+  confirmation,
+  resendPin,
+  uploadImage,
+} = require("../controllers/auth.js");
+const authentication = require("../middleware/authentication.js");
+const { upload } = require("../utils/image.js");
 
 const router = express.Router();
 
-// create a user
-router.post("/signup", signup);
-// Sign in
-router.post("/login", signin);
-// google auth
-// router.post('/google', )
-router.post("/confirmCode/:userId", confirmation);
+router
+  .post("/signup", signup)
+  .post("/login", signin)
+  .post("/confirmCode/:userId", confirmation)
+  .get("/resendOTP/:id", resendPin)
+  .post("/upload", authentication, upload.single("image"), uploadImage);
 module.exports = router;
